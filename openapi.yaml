@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: UsCODE API
+  version: "1.0.0"
+  description: |
+    Небольшой пример спек-файла — коллекция **Projects**.
+servers:
+  - url: https://api.uscode.io/api/v1
+paths:
+  /projects:
+    get:
+      summary: Получить список проектов
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, maximum: 100, default: 20 }
+          description: Кол-во элементов на страницу
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectList"
+    post:
+      summary: Создать новый проект
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCreateInput"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: URI нового проекта
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectItem"
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /projects/{projectId}:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Получить проект по id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectItem" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+    delete:
+      summary: Удалить проект
+      responses:
+        "204": { description: No Content }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  schemas:
+    ProjectItem:
+      type: object
+      properties:
+        id:     { type: integer, example: 42 }
+        name:   { type: string,  example: UsCODE }
+        status: { type: string,  enum: [ACTIVE, ARCHIVED], example: ACTIVE }
+      required: [id, name, status]
+
+    ProjectList:
+      type: object
+      properties:
+        projects:
+          type: array
+          items: { $ref: "#/components/schemas/ProjectItem" }
+        meta:
+          type: object
+          properties:
+            total:  { type: integer, example: 143 }
+            limit:  { type: integer, example: 20 }
+            offset: { type: integer, example: 0 }
+      required: [projects, meta]
+
+    ProjectCreateInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 3, example: New project }
+      required: [name]
+
+  responses:
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    # универсальная схема ошибки
+    Error:
+      type: object
+      properties:
+        status_code: { type: integer, example: 404 }
+        error_code:  { type: string,  example: not_found }
+        message:     { type: string,  example: Проект не найден }
+      required: [status_code, error_code, message]
