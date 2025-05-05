@@ -1,12 +1,146 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <title>UsCODE API</title>
-  <script src="https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js"></script>
+  <meta charset="utf-8"/>
+  <title>UsCODE API Docs</title>
+  <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0-rc.83/bundles/redoc.standalone.min.js"></script>
   <style>body{margin:0}</style>
 </head>
 <body>
-  <redoc spec-url="openapi.yaml"></redoc>
+
+  <!-- ===== OpenAPI-спека ===== -->
+  <script id="uscode-spec" type="application/yaml">
+openapi: 3.0.3           # важно: 3.0.x, ReDoc не рендерит 3.1
+info:
+  title: UsCODE API
+  version: "1.0.0"
+  description: |
+    Мини-пример: коллекция Projects.
+
+servers:
+  - url: https://api.uscode.io/api/v1
+
+paths:
+  /projects:
+    get:
+      summary: Список проектов
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, maximum: 100, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectList"
+
+    post:
+      summary: Создать проект
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectCreate" }
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: URI нового проекта
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectItem" }
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /projects/{projectId}:
+    parameters:
+      - in: path
+        name: projectId
+        required: true
+        schema: { type: integer }
+    get:
+      summary: Получить проект
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectItem" }
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+    delete:
+      summary: Удалить проект
+      responses:
+        "204": { description: No Content }
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  schemas:
+    ProjectItem:
+      type: object
+      properties:
+        id:   { type: integer, example: 42 }
+        name: { type: string,  example: UsCODE }
+        status:
+          type: string
+          enum: [ACTIVE, ARCHIVED]
+          example: ACTIVE
+      required: [id, name, status]
+
+    ProjectList:
+      type: object
+      properties:
+        projects:
+          type: array
+          items: { $ref: "#/components/schemas/ProjectItem" }
+        meta:
+          type: object
+          properties:
+            total:  { type: integer, example: 1432 }
+            limit:  { type: integer, example: 20 }
+            offset: { type: integer, example: 0 }
+      required: [projects, meta]
+
+    ProjectCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          example: New project
+      required: [name]
+
+    Error:
+      type: object
+      properties:
+        status_code: { type: integer, example: 404 }
+        error_code:  { type: string,  example: not_found }
+        message:     { type: string,  example: Проект не найден }
+      required: [status_code, error_code, message]
+  </script>
+  <!-- ===== /спека ===== -->
+
+  <redoc spec="uscode-spec"
+         hide-download-button
+         path-in-middle-panel></redoc>
+
 </body>
 </html>
